@@ -1,3 +1,4 @@
+"use client";
 import dynamic from "next/dynamic";
 const SalaryRangesTable = dynamic(() => import("@/components/salary/SalaryRangesTable"), { ssr: false });
 
