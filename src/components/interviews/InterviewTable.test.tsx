@@ -1,4 +1,14 @@
 import { render, screen } from '@testing-library/react';
+jest.mock('@/utils/supabaseClient', () => ({
+  supabase: {
+    from: () => ({
+      select: () => ({ order: () => ({ data: [], error: null }) }),
+      delete: () => ({}),
+      update: () => ({}),
+      insert: () => ({}),
+    }),
+  },
+}));
 import InterviewTable from './InterviewTable';
 
 describe('InterviewTable', () => {
