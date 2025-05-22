@@ -1,6 +1,5 @@
 "use client";
 import Sidebar from "./Sidebar";
-import ThemeToggle from "./ThemeToggle";
 import Topbar from "./Topbar";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
