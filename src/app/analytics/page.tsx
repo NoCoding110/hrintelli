@@ -1,6 +1,16 @@
-import { ChartBarIcon, UserGroupIcon, CurrencyDollarIcon, ArrowTrendingDownIcon, ClockIcon } from "@heroicons/react/24/outline";
+"use client";
+import { ChartBarIcon, UserGroupIcon, CurrencyDollarIcon, ArrowTrendingDownIcon, ClockIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
+import { getLLMResponse, formatAnalyticsContext, Message } from "@/utils/llmService";
 
 export default function AnalyticsPage() {
+  const [messages, setMessages] = useState<Message[]>([
+    { role: 'assistant', content: 'Hello! I\'m your HR Analytics Assistant. Ask me anything about your HR metrics, trends, or predictions.' }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   // Example metrics (replace with real data from Supabase)
   const metrics = [
     {
@@ -35,6 +45,31 @@ export default function AnalyticsPage() {
     },
   ];
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = input.trim();
+    setInput('');
+    setError(null);
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setIsLoading(true);
+
+    try {
+      const context = formatAnalyticsContext(metrics);
+      const response = await getLLMResponse([...messages, { role: 'user', content: userMessage }], context);
+      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error. Please try again.'
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -62,11 +97,56 @@ export default function AnalyticsPage() {
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6 min-h-[320px] flex flex-col">
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">AI Analytics Assistant</h2>
-          <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 text-center">
-            <div>
-              <div className="mb-2">[AI-powered analytics Q&A coming soon]</div>
-              <div className="text-xs">Ask questions like "Show turnover by department" or "Predict next quarter's headcount".</div>
+          <div className="flex-1 flex flex-col">
+            <div className="flex-1 overflow-y-auto mb-4 space-y-4">
+              {messages.map((message, i) => (
+                <div
+                  key={i}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-lg p-3 ${
+                      message.role === 'user'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                    }`}
+                  >
+                    {message.content}
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-gray-900 dark:text-gray-100">
+                    Thinking...
+                  </div>
+                </div>
+              )}
+              {error && (
+                <div className="flex justify-start">
+                  <div className="bg-red-100 dark:bg-red-900 rounded-lg p-3 text-red-700 dark:text-red-200">
+                    {error}
+                  </div>
+                </div>
+              )}
             </div>
+            <form onSubmit={handleSubmit} className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask about HR metrics..."
+                className="flex-1 p-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                disabled={isLoading}
+              />
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                <PaperAirplaneIcon className="w-5 h-5" />
+              </button>
+            </form>
           </div>
         </div>
       </div>
